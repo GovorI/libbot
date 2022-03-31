@@ -16,20 +16,16 @@ bot.setMyCommands([
 bot.on('message', (msg) => {
     let chatId = msg.chat.id
     let text = msg.text
-    // console.log(msg)
     if (text === '/start') {
         console.log(isUserSave(chatId))
         if(isUserSave(chatId)){
             bot.sendMessage(chatId, `Приветствую, ${msg.from.first_name}!`)
-            
             const index = users.findIndex(u => u.userId === chatId)
-            // console.log(index)
             if (index !== -1) {
                 users.splice(index, 1)
             }
             createUser(msg, './data')
             let user = findUser(chatId)
-            // console.log(users)
             let buttons = viewButtons(user.path, chatId)
             user.buttons = buttons
         }else {
@@ -39,19 +35,6 @@ bot.on('message', (msg) => {
             let buttons = viewButtons(user.path, chatId)
             user.buttons = buttons
         }
-        // if (isUserSave(chatId)) {
-        //     bot.sendMessage(chatId, `Приветствую, ${msg.from.first_name}!`)
-        //     let user = findUser(chatId)
-        //     console.log(user)
-        //     viewButtons(user.Path, chatId)
-
-        // } else {
-        //     createUser(msg, './data')
-        //     let user = findUser(chatId)
-        //     let buttons = viewButtons(user.Path, chatId)
-        //     user.buttons = buttons
-        //     // console.log(buttons)
-        // }
     }
     console.log(users)
     processing(chatId, text)
@@ -60,7 +43,6 @@ bot.on('message', (msg) => {
 bot.on('callback_query', (msg) => {
     const chatId = msg.message.chat.id
     const data = msg.data
-    // console.log(msg)
     sendFile(chatId, data)
 })
 
@@ -87,7 +69,6 @@ function sendFile(chatId, fileId) {
                 } else {
                     bot.sendDocument(chatId, filesPath[i].path)
                 }
-
             } catch (error) {
                 console.log(error)
             }
@@ -105,14 +86,12 @@ function processing(chatId, text) {
             userInfo(user)
         }
     });
-
 }
 
 function findUser(chatId) {
     let findedUser
     users.forEach(user => {
         if (user.userId === chatId) {
-            // console.log('findUser' + user)
             findedUser = user
         }
 
@@ -122,9 +101,7 @@ function findUser(chatId) {
 
 function isUserSave(chatId) {
     for (let user of Object.values(users)) {
-        // console.log(user)
         if (user.userId === chatId) {
-            // console.log(user)
             return true
         }
     }
@@ -149,7 +126,6 @@ function getFiles(path, files_) {
         var name = path + '/' + files[i]
         files_.push(name)
     }
-    // console.log('Files----->' + files_)
     return files_
 }
 
@@ -160,22 +136,17 @@ function viewButtons(path, chatId) {
     let i = 0
     filesPath = []
     files.forEach(element => {
-        // console.log(element)
         let text = element.split('/')
         if (fs.statSync(element).isDirectory()) {
             menuButtons.push([{ 'text': text[text.length - 1], 'callback_data': element }])
         } else if (fs.statSync(element).isFile()) {
             filesButtons.push([{ 'text': text[text.length - 1], 'callback_data': i.toString() }])
             filesPath.push({ id: i.toString(), path: element })
-            // console.log(filesPath)
             i++
         }
     });
 
     menuButtons.push([{ 'text': 'Главное меню', 'callback_data': './data' }])
-
-    // console.log('Buttons' + JSON.stringify(menuButtons))
-    // console.log('Files' + JSON.stringify(filesButtons))
 
     bot.sendMessage(chatId, 'Выберите пункт меню', {
         reply_markup: JSON.stringify({
