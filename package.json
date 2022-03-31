@@ -1,0 +1,17 @@
+{
+  "name": "bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "scripts": {
+    "dev": "nodemon run bot.js"
+  },
+  "author": "Govor Ilia",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^3.2.3",
+    "dotenv": "^16.0.0",
+    "node-telegram-bot-api": "^0.56.0",
+    "nodemon": "^2.0.15"
+  }
+}
