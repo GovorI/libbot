@@ -146,7 +146,9 @@ function viewButtons(path, chatId) {
         }
     });
 
-    menuButtons.push([{ 'text': 'Главное меню', 'callback_data': './data' }])
+    if(path != './data'){
+        menuButtons.push([{ 'text': 'Главное меню', 'callback_data': './data' }])
+    }
 
     bot.sendMessage(chatId, 'Выберите пункт меню', {
         reply_markup: JSON.stringify({
