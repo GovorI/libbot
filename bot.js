@@ -1,11 +1,8 @@
 const telegram = require('node-telegram-bot-api')
 require('dotenv/config')
 const fs = require('fs')
-const path = require('path')
 const bot = new telegram(process.env.TELEGRAM_TOKEN, { polling: true })
-
-let filesPath = []
-let users = []
+const users = new Map()
 
 bot.on('polling_error', console.log)
 
@@ -14,109 +11,63 @@ bot.setMyCommands([
 ])
 
 bot.on('message', (msg) => {
-    let chatId = msg.chat.id
-    let text = msg.text
-    if (text === '/start') {
-        console.log(isUserSave(chatId))
-        if(isUserSave(chatId)){
-            bot.sendMessage(chatId, `Приветствую, ${msg.from.first_name}!`)
-            const index = users.findIndex(u => u.userId === chatId)
-            if (index !== -1) {
-                users.splice(index, 1)
+    if (msg.text === '/start') {
+            let buttons = createButtons('./data')
+            viewButtons(msg.chat.id, buttons.menuButtons, buttons.filesButtons)
+            const user = {
+                chatId: msg.chat.id,
+                name: msg.from.first_name,
+                path: './data',
+                menuButtons: buttons.menuButtons,
+                filesButtons: buttons.filesButtons
             }
-            createUser(msg, './data')
-            let user = findUser(chatId)
-            let buttons = viewButtons(user.path, chatId)
-            user.buttons = buttons
-        }else {
-            bot.sendMessage(chatId, `Приветствую, ${msg.from.first_name}!`)
-            createUser(msg, './data')
-            let user = findUser(chatId)
-            let buttons = viewButtons(user.path, chatId)
-            user.buttons = buttons
+            users.set(msg.chat.id, user)
+    } else {
+        let user = users.get(msg.chat.id)
+        for (let i of user.menuButtons) {
+            if (i[0].text === msg.text) {
+                console.log(i[0].callback_data)
+                let buttons = createButtons(i[0].callback_data)
+                viewButtons(msg.chat.id, buttons.menuButtons, buttons.filesButtons)
+                let user = users.get(msg.chat.id)
+                console.log(user)
+                console.log(i[0].callback_data)
+                user.path = i[0].callback_data
+                user.menuButtons = buttons.menuButtons
+                user.filesButtons = buttons.filesButtons
+                users.set(msg.chat.id, user)
+            }
         }
     }
+
     console.log(users)
-    processing(chatId, text)
 })
 
 bot.on('callback_query', (msg) => {
     const chatId = msg.message.chat.id
-    const data = msg.data
-    sendFile(chatId, data)
+    const fileId = msg.data
+    console.log(msg)
+    sendFile(chatId, fileId)
 })
 
-function userInfo(user){
-    console.log(user.userId)
-    console.log(user.firstName)
-    for(let i =0; i<user.buttons.length; i++){
-        console.log(user.buttons[i])
-    }
-}
-
 function sendFile(chatId, fileId) {
-    for (let i = 0; i < filesPath.length; i++) {
-        if (fileId === filesPath[i].id) {
-            try {
-                let fileName = filesPath[i].path.split('.')
-                console.log(fileName[fileName.length - 1])
-                if (fileName[fileName.length - 1].toString() == ('mp4' || 'avi')) {
-                    bot.sendMessage(chatId, 'Загрузка видео...')
-                    fs.readFile(filesPath[i].path, (err, video) => {
-                        if (err) console.log(err)
-                        bot.sendVideo(chatId, video)
-                    })
-                } else {
-                    bot.sendDocument(chatId, filesPath[i].path)
-                }
-            } catch (error) {
-                console.log(error)
+    let buttons = users.get(chatId).filesButtons
+    for (let button of buttons) {
+        if (fileId === button[0].callback_data) {
+            let ext = button[0].text.split('.')
+            let path = users.get(chatId).path.toString()
+            path += '/'+button[0].text.toString()
+            if(ext[ext.length-1]=== ('mp4' || 'avi')){
+                bot.sendMessage(chatId, 'Загрузка видео...')
+                fs.readFile(path, (err, video)=>{
+                    if(err) console.log(err)
+                    bot.sendVideo(chatId, video)
+                })
+            }else {
+                bot.sendDocument(chatId, path)
             }
         }
     }
-}
-
-function processing(chatId, text) {
-    let user = findUser(chatId)
-    user.buttons.forEach(button => {
-        if (button[0].text === text) {
-            let buttons = viewButtons(button[0].callback_data, chatId)
-            user.buttons = buttons
-            user.path = button[0].callback_data
-            userInfo(user)
-        }
-    });
-}
-
-function findUser(chatId) {
-    let findedUser
-    users.forEach(user => {
-        if (user.userId === chatId) {
-            findedUser = user
-        }
-
-    });
-    return findedUser
-}
-
-function isUserSave(chatId) {
-    for (let user of Object.values(users)) {
-        if (user.userId === chatId) {
-            return true
-        }
-    }
-    return false
-}
-
-function createUser(msg, path) {
-    let id = msg.from.id
-    let firstName = msg.from.first_name
-    users.push({
-        userId: id,
-        firstName: firstName,
-        path: path,
-        buttons: []
-    })
 }
 
 function getFiles(path, files_) {
@@ -129,7 +80,7 @@ function getFiles(path, files_) {
     return files_
 }
 
-function viewButtons(path, chatId) {
+function createButtons(path) {
     let files = getFiles(path)
     let menuButtons = []
     let filesButtons = []
@@ -146,10 +97,16 @@ function viewButtons(path, chatId) {
         }
     });
 
-    if(path != './data'){
+    if (path != './data') {
         menuButtons.push([{ 'text': 'Главное меню', 'callback_data': './data' }])
     }
+    return {
+        menuButtons: menuButtons,
+        filesButtons: filesButtons
+    }
+}
 
+function viewButtons(chatId, menuButtons, filesButtons) {
     bot.sendMessage(chatId, 'Выберите пункт меню', {
         reply_markup: JSON.stringify({
             keyboard: menuButtons
@@ -162,5 +119,4 @@ function viewButtons(path, chatId) {
             })
         })
     }
-    return menuButtons
 }
