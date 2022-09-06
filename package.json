@@ -4,7 +4,8 @@
   "description": "",
   "main": "bot.js",
   "scripts": {
-    "dev": "nodemon run bot.js"
+    "dev": "nodemon run bot.js",
+    "bot": "node bot.js"
   },
   "author": "Govor Ilia",
   "license": "ISC",
