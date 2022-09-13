@@ -26,7 +26,6 @@ class User {
     static async saveUser(user) {
         const users = await User.getAll()
         users.push(user)
-        console.log(users)
         fs.writeFile(
             './usersId.json',
             JSON.stringify(users),
@@ -63,6 +62,7 @@ class User {
 
     static async getUserById(id) {
         const users = await User.getAll()
+        console.log(users)
         return users.find(user => user.id === id)
     }
 
