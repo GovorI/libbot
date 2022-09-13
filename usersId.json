@@ -1,1 +1,1 @@
-[]
+[{"id":431983680,"name":"name","path":"./data","menuButtons":[[{"text":"! Инструкции !","callback_data":"./data/! Инструкции !"}],[{"text":"Акты и документы","callback_data":"./data/Акты и документы"}],[{"text":"Закон и постановления","callback_data":"./data/Закон и постановления"}],[{"text":"Приказы","callback_data":"./data/Приказы"}],[{"text":"Прочая информация","callback_data":"./data/Прочая информация"}]],"filesButtons":[]}]
