@@ -10,6 +10,7 @@ class User {
         this.filesButtons = filesButtons
     }
 
+
     static getAll() {
         return new Promise((resolve, reject) => {
             fs.readFile(
@@ -17,7 +18,11 @@ class User {
                 'utf-8',
                 (err, data) => {
                     if (err) reject(err)
-                    resolve(JSON.parse(data))
+                    try {
+                        resolve(JSON.parse(data))
+                    } catch (error) {
+                        console.log(error)
+                    }
                 }
             )
         })
@@ -62,28 +67,28 @@ class User {
 
     static async getUserById(id) {
         const users = await User.getAll()
-        console.log(users)
         return users.find(user => user.id === id)
     }
 
     static async delete(userId) {
         const users = await User.getAll()
-        for (let i in users){
-            console.log(i)
-            console.log(userId)
-            console.log(users[i].id)
-            if(users[i].id === userId){
-                const deleted = users.splice(i, 1)
-                console.log(deleted)
-                fs.writeFile('./usersId.json', JSON.stringify(users), (err) => {
-                    if (err) {
-                        console.log(err)
-                    }
-                })
-                return deleted
+        console.log(users)
+        for (let i in users) {
+            if (users[i].id === userId) {
+                let delUser = await users.splice(i, 1)
+                fs.writeFile(
+                    './usersId.json',
+                    JSON.stringify(users),
+                    (err) => {
+                        if (err) {
+                            console.log(err)
+                            return false
+                        }
+                    })
+                return delUser
             }
         }
-        
+
     }
 }
 

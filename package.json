@@ -13,6 +13,6 @@
     "async": "^3.2.3",
     "dotenv": "^16.0.0",
     "node-telegram-bot-api": "^0.56.0",
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.19"
   }
 }

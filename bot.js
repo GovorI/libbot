@@ -3,65 +3,79 @@ require('dotenv/config')
 const fs = require('fs')
 const bot = new telegram(process.env.TELEGRAM_TOKEN, { polling: true })
 const User = require('./User')
-const i = 326268494
-const admin = 431983680
+const i = process.env.ADMIN
+const admin = process.env.ADMIN2
 const mainMenu = createButtons('./data')
-console.log(admin)
 bot.on('polling_error', console.log)
 
 bot.setMyCommands([
-    { command: '/start', description: 'Запуск' }
+    { command: '/start', description: 'Запуск' },
 ])
 
+
+
 bot.on('message', async (msg) => {
-    const id = msg.chat.id
+    await createAdmins()
+    const chatId = msg.chat.id
     const name = msg.from.first_name
     const text = msg.text
     console.log('isAdminDontCreated ' + Boolean(await User.getUserById(admin) === undefined))
-    if (await User.getUserById(admin) === undefined || await User.getUserById(i) === undefined) {
-        const users = await User.getAll()
-        console.log(users)
-        if (users.length === 0) {
-            await User.saveUser(new User(admin, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
-            await User.saveUser(new User(i, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
-            viewButtons(id, mainMenu.menuButtons, mainMenu.filesButtons)
+    const user = await User.getUserById(chatId)
+    console.log(chatId)
+    if (user || admin === chatId || i === chatId) {
+        console.log('isUserCreated ' + Boolean(user))
+        if (/\/start/.test(text)) {
+            const buttons = createButtons('./data')
+            await User.updateUser(chatId, name, './data', buttons.menuButtons, buttons.filesButtons)
+            viewButtons(chatId, buttons.menuButtons, buttons.filesButtons)
+        } else if (/\/add\s\d+/.test(text)) {
+            if (chatId === admin || chatId === i) {
+                let id = Number(text.split(' ')[1])
+                if (await User.getUserById(id)) {
+                    bot.sendMessage(chatId, `Пользователь с ID: ${id} уже есть в списке`)
+                } else {
+                    const user = new User(id, 'name', './data', null, null)
+                    const answerText = await User.saveUser(user)
+                    console.log(answerText)
+                    bot.sendMessage(chatId, `Пользователь с ID: ${user.id} добавлен`)
+                }
+            } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
+        } else if (/\/del\s\d+/.test(text)) {
+            if (chatId === admin || chatId === i) {
+                let id = Number(text.split(' ')[1])
+                const deletedUser = await User.delete(id)
+                console.log('del' + deletedUser)
+                if (deletedUser) {
+                    bot.sendMessage(chatId, `Пользователь c ID: ${id} удален`)
+                } else bot.sendMessage(chatId, `Пользователя с ID: ${id} нет в списке`)
+            } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
+        } else if (/\/all/.test(text)) {
+            if (chatId === admin || chatId === i) {
+                const list = await User.getAll()
+                if (list.length > 0) {
+                    for (let user of list) {
+                        bot.sendMessage(chatId, `ID: ${user.id} Name: ${user.name}`)
+                    }
+                } else bot.sendMessage(chatId, 'Нет добавленных пользователей')
+            } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
         } else {
-            var i_ = users.find(u => u.id === i)
-            var admin_ = users.find(u => u.id === admin)
-            if (i_ === undefined) {
-                await User.saveUser(new User(i, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
-            } else if (admin_ === undefined) {
-                await User.saveUser(new User(admin, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
+            try {
+                for (let i of user.menuButtons) {
+                    if (i[0].text === text) {
+                        let buttons = createButtons(i[0].callback_data)
+                        console.log(user)
+                        console.log(text)
+                        await User.updateUser(chatId, name, i[0].callback_data, buttons.menuButtons, buttons.filesButtons)
+                        viewButtons(chatId, buttons.menuButtons, buttons.filesButtons)
+                    }
+                }
+            } catch (error) {
+                console.log(error)
+                bot.sendMessage(chatId, 'чтобы начать нажмите /start ')
             }
         }
     } else {
-        const user = await User.getUserById(id)
-        console.log(id)
-        if (user || admin === id || i === id) {
-            console.log('isUserCreated ' + Boolean(user))
-            if (text === '/start') {
-                const buttons = createButtons('./data')
-                const user = await User.updateUser(id, name, './data', buttons.menuButtons, buttons.filesButtons)
-                // console.log(user)
-                viewButtons(id, buttons.menuButtons, buttons.filesButtons)
-            } else {
-                console.log('isUserCreated ' + Boolean(user))
-                if (user) {
-                    for (let i of user.menuButtons) {
-                        if (i[0].text === text) {
-                            let buttons = createButtons(i[0].callback_data)
-                            // console.log(buttons)
-                            await User.updateUser(id, name, i[0].callback_data, buttons.menuButtons, buttons.filesButtons)
-                            viewButtons(id, buttons.menuButtons, buttons.filesButtons)
-                        }
-                    }
-                } else if (user === 'undefined') {
-                    bot.sendMessage(msg.chat.id, 'У вас нет доступа1')
-                }
-            }
-        } else {
-            bot.sendMessage(msg.chat.id, 'У вас нет доступа2')
-        }
+        bot.sendMessage(msg.chat.id, 'У вас нет доступа')
     }
 })
 
@@ -72,42 +86,22 @@ bot.on('callback_query', (msg) => {
     sendFile(chatId, fileId)
 })
 
-bot.onText(/\/add\s\d+/, (msg, match) => {
-    const chatId = msg.from.id
-    if (chatId === admin || chatId === i) {
-        let id = Number(match[0].split(' ')[1])
-        const user = new User(id, 'name', './data', [], [])
-        // console.log(user)
-        const answerText = User.saveUser(user)
-        console.log(answerText)
-        bot.sendMessage(chatId, `Пользователь с ID: ${user.id} добавлен`)
-
-    } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
-})
-
-bot.onText(/\/del\s\d+/, async (msg, match) => {
-    const chatId = msg.from.id
-    if (chatId === admin || chatId === i) {
-        let id = match[0].split(' ')[1]
-        const deletedUser = await User.delete(Number(id))
-        console.log(deletedUser)
-        if (deletedUser) {
-            bot.sendMessage(chatId, `Пользователь c ID: ${deletedUser[0].id} удален`)
-        } else bot.sendMessage(chatId, `Пользователя с ID: ${id} нет в списке`)
-    } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
-})
-
-bot.onText(/\/all/, async (msg, match) => {
-    const chatId = msg.chat.id
-    if (chatId === admin || chatId === i) {
-        const list = await User.getAll()
-        if (list.length > 0) {
-            for (let user of list) {
-                bot.sendMessage(chatId, `ID: ${user.id} Name: ${user.name}`)
-            }
-        } else bot.sendMessage(chatId, 'Нет добавленных пользователей')
-    } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
-})
+async function createAdmins() {
+    const users = await User.getAll()
+    console.log('length' + Boolean(users.length === 0))
+    if (users.length === 0) {
+        await User.saveUser(new User(admin, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
+        await User.saveUser(new User(i, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
+    } else {
+        var i_ = users.find(u => u.id === i)
+        var admin_ = users.find(u => u.id === admin)
+        if (i_ === undefined) {
+            await User.saveUser(new User(i, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
+        } else if (admin_ === undefined) {
+            await User.saveUser(new User(admin, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
+        }
+    }
+}
 
 async function sendFile(chatId, fileId) {
     let user = await User.getUserById(chatId)
@@ -169,7 +163,6 @@ function createButtons(path) {
 }
 
 function viewButtons(chatId, menuButtons, filesButtons) {
-    // console.log(m lesButtons)
     bot.sendMessage(chatId, 'Выберите пункт меню', {
         reply_markup: JSON.stringify({
             keyboard: menuButtons
