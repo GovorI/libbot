@@ -1,4 +1,5 @@
-const fs = require('fs')
+const path = require('path')
+const fs = require('fs').promises
 
 
 class User {
@@ -10,85 +11,65 @@ class User {
         this.filesButtons = filesButtons
     }
 
-
-    static getAll() {
-        return new Promise((resolve, reject) => {
-            fs.readFile(
-                './usersId.json',
-                'utf-8',
-                (err, data) => {
-                    if (err) reject(err)
-                    try {
-                        resolve(JSON.parse(data))
-                    } catch (error) {
-                        console.log(error)
-                    }
-                }
+    static async getAll() {
+        try {
+            const data = await fs.readdir(
+                path.join(__dirname, './users')
             )
-        })
+            return data
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     static async saveUser(user) {
-        const users = await User.getAll()
-        users.push(user)
-        fs.writeFile(
-            './usersId.json',
-            JSON.stringify(users),
-            (err) => {
-                if (err) {
-                    console.log(err)
-                    return "не удалось сохранить пользователя"
-                }
-            })
-        return "пользователь успешно сохранен"
+        try {
+            await fs.writeFile(
+                path.join(__dirname, `./users/${user.id}.json`),
+                JSON.stringify(user)
+            )
+        } catch (err) {
+            console.error(err)
+        }
     }
 
     static async updateUser(id, name, path, menuButtons, filesButtons) {
-        const users = await User.getAll()
-        let idx = users.findIndex(u => u.id === id)
-        const user = users[idx]
-        user.id = id
-        user.name = name
-        user.path = path
-        user.menuButtons = menuButtons
-        user.filesButtons = filesButtons
-        users[idx] = user
-        fs.writeFile(
-            './usersId.json',
-            JSON.stringify(users),
-            (err) => {
-                if (err) {
-                    console.log(err)
-                    return "не удалось сохранить пользователя"
-                }
-            })
-        return "пользователь успешно сохранен"
+        try {
+            await fs.writeFile(
+                `./users/${id}.json`,
+                JSON.stringify({
+                    "id": id,
+                    "name": name,
+                    "path": path,
+                    "menuButtons": menuButtons,
+                    "filesButtons": filesButtons
+                })
+            )
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     static async getUserById(id) {
-        const users = await User.getAll()
-        return users.find(user => user.id === id)
+        try {
+            const data = await fs.readFile(
+                path.join(__dirname, `./users/${id}.json`),
+            )
+            return JSON.parse(data.toString())
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     static async delete(userId) {
-        const users = await User.getAll()
-        console.log(users)
-        for (let i in users) {
-            if (users[i].id === userId) {
-                let delUser = await users.splice(i, 1)
-                fs.writeFile(
-                    './usersId.json',
-                    JSON.stringify(users),
-                    (err) => {
-                        if (err) {
-                            console.log(err)
-                            return false
-                        }
-                    })
-                return delUser
-            }
+        try {
+            await fs.unlink(
+                path.join(__dirname, `./users/${userId}.json`)
+            )
+            return true
+        } catch (error) {
+            
         }
-
     }
 }
 

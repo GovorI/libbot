@@ -8,3 +8,4 @@ If you push inline button bot will send this file.
 /add NUM -- add user Id
 /del NUM -- delete user Id
 /all -- get all users id
+/post  -- send a message to all users

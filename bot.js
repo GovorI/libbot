@@ -9,7 +9,7 @@ const mainMenu = createButtons('./data')
 bot.on('polling_error', console.log)
 
 bot.setMyCommands([
-    { command: '/start', description: 'Запуск' },
+    { command: '/start', description: 'Запуск' }
 ])
 
 
@@ -19,9 +19,11 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id
     const name = msg.from.first_name
     const text = msg.text
+    console.log(msg)
     console.log('isAdminDontCreated ' + Boolean(await User.getUserById(admin) === undefined))
     const user = await User.getUserById(chatId)
     console.log(chatId)
+    console.log(user)
     if (user || admin === chatId || i === chatId) {
         console.log('isUserCreated ' + Boolean(user))
         if (/\/start/.test(text)) {
@@ -34,7 +36,8 @@ bot.on('message', async (msg) => {
                 if (await User.getUserById(id)) {
                     bot.sendMessage(chatId, `Пользователь с ID: ${id} уже есть в списке`)
                 } else {
-                    const user = new User(id, 'name', './data', null, null)
+                    const user = new User(id, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons)
+                    console.log(user)
                     const answerText = await User.saveUser(user)
                     console.log(answerText)
                     bot.sendMessage(chatId, `Пользователь с ID: ${user.id} добавлен`)
@@ -44,7 +47,7 @@ bot.on('message', async (msg) => {
             if (chatId === admin || chatId === i) {
                 let id = Number(text.split(' ')[1])
                 const deletedUser = await User.delete(id)
-                console.log('del' + deletedUser)
+                console.log(deletedUser)
                 if (deletedUser) {
                     bot.sendMessage(chatId, `Пользователь c ID: ${id} удален`)
                 } else bot.sendMessage(chatId, `Пользователя с ID: ${id} нет в списке`)
@@ -53,10 +56,23 @@ bot.on('message', async (msg) => {
             if (chatId === admin || chatId === i) {
                 const list = await User.getAll()
                 if (list.length > 0) {
-                    for (let user of list) {
+                    for (let u of list) {
+                        const user = await User.getUserById(u.split('.')[0])
                         bot.sendMessage(chatId, `ID: ${user.id} Name: ${user.name}`)
                     }
                 } else bot.sendMessage(chatId, 'Нет добавленных пользователей')
+            } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
+        } else if (/\/post/.test(text)) {
+            if (chatId === admin || chatId === i) {
+                const mesArr = text.split(' ')
+                mesArr.splice(0,1)
+                const mes = mesArr
+                console.log(mesArr)
+                const users = await User.getAll()
+                for (let u of users) {
+                    const user = await User.getUserById(u.split('.')[0])
+                    bot.sendMessage(user.id, mes.join(' '))
+                }
             } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
         } else {
             try {
@@ -93,8 +109,10 @@ async function createAdmins() {
         await User.saveUser(new User(admin, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
         await User.saveUser(new User(i, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
     } else {
-        var i_ = users.find(u => u.id === i)
-        var admin_ = users.find(u => u.id === admin)
+        console.log('----->' + users[0].split('.')[0])
+        var i_ = users.find(u => Number(u.split('.')[0]) === i)
+        var admin_ = users.find(u => Number(u.split('.')[0]) === admin)
+        console.log('USERS: ' + i_ + admin_)
         if (i_ === undefined) {
             await User.saveUser(new User(i, 'name', './data', mainMenu.menuButtons, mainMenu.filesButtons))
         } else if (admin_ === undefined) {
