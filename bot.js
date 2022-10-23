@@ -20,10 +20,10 @@ bot.on('message', async (msg) => {
     const name = msg.from.first_name
     const text = msg.text
     console.log(msg)
-    console.log('isAdminDontCreated ' + Boolean(await User.getUserById(admin) === undefined))
+    console.log('isAdminCreated ' + Boolean(await User.getUserById(admin) !== undefined))
     const user = await User.getUserById(chatId)
-    console.log(chatId)
-    console.log(user)
+    console.log('user Id: ' + chatId)
+    console.log('isUserAdded: ' + user)
     if (user || admin === chatId || i === chatId) {
         console.log('isUserCreated ' + Boolean(user))
         if (/\/start/.test(text)) {
@@ -41,6 +41,7 @@ bot.on('message', async (msg) => {
                     const answerText = await User.saveUser(user)
                     console.log(answerText)
                     bot.sendMessage(chatId, `Пользователь с ID: ${user.id} добавлен`)
+                    bot.sendMessage(id, 'Вы получили доступ')
                 }
             } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
         } else if (/\/del\s\d+/.test(text)) {
@@ -65,31 +66,25 @@ bot.on('message', async (msg) => {
         } else if (/\/post/.test(text)) {
             if (chatId === admin || chatId === i) {
                 const mesArr = text.split(' ')
-                mesArr.splice(0,1)
+                mesArr.splice(0, 1)
                 const mes = mesArr
                 console.log(mesArr)
                 const users = await User.getAll()
                 for (let u of users) {
-                    const user = await User.getUserById(u.split('.')[0])
-                    bot.sendMessage(user.id, mes.join(' '))
+                    try {
+                        const user = await User.getUserById(u.split('.')[0])
+                        bot.sendMessage(user.id, mes.join(' '))
+                    } catch (error) {
+                        console.log(error)
+                    }
                 }
             } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
         } else {
-            try {
-                for (let i of user.menuButtons) {
-                    if (i[0].text === text) {
-                        let buttons = createButtons(i[0].callback_data)
-                        console.log(user)
-                        console.log(text)
-                        await User.updateUser(chatId, name, i[0].callback_data, buttons.menuButtons, buttons.filesButtons)
-                        viewButtons(chatId, buttons.menuButtons, buttons.filesButtons)
-                    }
-                }
-            } catch (error) {
-                console.log(error)
-                bot.sendMessage(chatId, 'чтобы начать нажмите /start ')
-            }
+            if (await action(chatId, text, user, name)) {
+                console.log(user.path)
+            } else bot.sendMessage(chatId, 'чтобы начать нажмите /start')
         }
+
     } else {
         bot.sendMessage(msg.chat.id, 'У вас нет доступа')
     }
@@ -101,6 +96,26 @@ bot.on('callback_query', (msg) => {
     console.log(fileId)
     sendFile(chatId, fileId)
 })
+
+async function action(chatId, text, user, name) {
+    let stat = false
+    try {
+        for (let i of user.menuButtons) {
+            if (i[0].text === text) {
+                let buttons = createButtons(i[0].callback_data)
+                console.log(`Пользователь: ${user}`)
+                console.log(text)
+                await User.updateUser(chatId, name, i[0].callback_data, buttons.menuButtons, buttons.filesButtons)
+                viewButtons(chatId, buttons.menuButtons, buttons.filesButtons)
+                stat = true
+            }
+        }
+        return stat
+    } catch (error) {
+        console.log(error)
+        bot.sendMessage(chatId, 'чтобы начать нажмите /start ')
+    }
+}
 
 async function createAdmins() {
     const users = await User.getAll()
