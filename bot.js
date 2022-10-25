@@ -80,9 +80,7 @@ bot.on('message', async (msg) => {
                 }
             } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
         } else {
-            if (await action(chatId, text, user, name)) {
-                console.log(user.path)
-            } else bot.sendMessage(chatId, 'чтобы начать нажмите /start')
+            await action(chatId, text, user, name)
         }
 
     } else {
