@@ -96,7 +96,6 @@ bot.on('callback_query', (msg) => {
 })
 
 async function action(chatId, text, user, name) {
-    let stat = false
     try {
         for (let i of user.menuButtons) {
             if (i[0].text === text) {
@@ -105,10 +104,8 @@ async function action(chatId, text, user, name) {
                 console.log(text)
                 await User.updateUser(chatId, name, i[0].callback_data, buttons.menuButtons, buttons.filesButtons)
                 viewButtons(chatId, buttons.menuButtons, buttons.filesButtons)
-                stat = true
             }
         }
-        return stat
     } catch (error) {
         console.log(error)
         bot.sendMessage(chatId, 'чтобы начать нажмите /start ')
