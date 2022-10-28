@@ -3,8 +3,8 @@ require('dotenv/config')
 const fs = require('fs')
 const bot = new telegram(process.env.TELEGRAM_TOKEN, { polling: true })
 const User = require('./User')
-const i = process.env.ADMIN
-const admin = process.env.ADMIN2
+const i = ADMIN
+const admin = ADMIN2
 const mainMenu = createButtons('./data')
 bot.on('polling_error', console.log)
 
@@ -56,11 +56,13 @@ bot.on('message', async (msg) => {
         } else if (/\/all/.test(text)) {
             if (chatId === admin || chatId === i) {
                 const list = await User.getAll()
+                const users = []
                 if (list.length > 0) {
                     for (let u of list) {
                         const user = await User.getUserById(u.split('.')[0])
-                        bot.sendMessage(chatId, `ID: ${user.id} Name: ${user.name}`)
+                        users.push({ ID: user.id, Name: user.name })
                     }
+                    bot.sendMessage(chatId, JSON.stringify(users))
                 } else bot.sendMessage(chatId, 'Нет добавленных пользователей')
             } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
         } else if (/\/post/.test(text)) {
@@ -80,10 +82,9 @@ bot.on('message', async (msg) => {
                 }
             } else bot.sendMessage(msg.chat.id, 'У Вас нет прав администратора')
         } else {
-            if (await action(chatId, text, user, name)) {
-                console.log(user.path)
-            } else bot.sendMessage(chatId, 'чтобы начать нажмите /start')
+            await action(chatId, text, user, name)
         }
+
 
     } else {
         bot.sendMessage(msg.chat.id, 'У вас нет доступа')
@@ -98,7 +99,6 @@ bot.on('callback_query', (msg) => {
 })
 
 async function action(chatId, text, user, name) {
-    let stat = false
     try {
         for (let i of user.menuButtons) {
             if (i[0].text === text) {
@@ -107,10 +107,8 @@ async function action(chatId, text, user, name) {
                 console.log(text)
                 await User.updateUser(chatId, name, i[0].callback_data, buttons.menuButtons, buttons.filesButtons)
                 viewButtons(chatId, buttons.menuButtons, buttons.filesButtons)
-                stat = true
             }
         }
-        return stat
     } catch (error) {
         console.log(error)
         bot.sendMessage(chatId, 'чтобы начать нажмите /start ')
