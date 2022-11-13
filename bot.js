@@ -3,8 +3,8 @@ require('dotenv/config')
 const fs = require('fs')
 const bot = new telegram(process.env.TELEGRAM_TOKEN, { polling: true })
 const User = require('./User')
-const i = ADMIN
-const admin = ADMIN2
+const i = process.env.ADMIN
+const admin = process.env.ADMIN2
 const mainMenu = createButtons('./data')
 bot.on('polling_error', console.log)
 
@@ -59,8 +59,10 @@ bot.on('message', async (msg) => {
                 const users = []
                 if (list.length > 0) {
                     for (let u of list) {
-                        const user = await User.getUserById(u.split('.')[0])
-                        users.push({ ID: user.id, Name: user.name })
+                        if (u.split('.')[1] === 'json') {
+                            const user = await User.getUserById(u.split('.')[0])
+                            users.push({ ID: user.id, Name: user.name })
+                        }
                     }
                     bot.sendMessage(chatId, JSON.stringify(users))
                 } else bot.sendMessage(chatId, 'Нет добавленных пользователей')
